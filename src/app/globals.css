@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "CretoDispay";
+  src: url("@/../../../public/Fonts/CreatoDisplay-Regular.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "AWAKENNING";
+  src: url("@/../../../public/Fonts/AWAKENNING.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@theme {
+  --color-primary-dark: #9A080F;
+  --color-primary: #B41219;
+  --color-black: #111111;
+  --color-grey: #C4C4C4;
+
+  --color-color-text-primary: #fff;
+
+  --text-h1: 68px;
+  --text-h2: 56px;
+  --text-h3: 48px;
+  --text-h4: 36px;
+  --text-h5: 22px;
+
+  --text-normal1: 20px;
+  --text-normal2: 18px;
+  --text-normal3: 16px;
+  --text-normal4: 14px;
+
+  --leading-lh24: 24px;
+
+  --font-normal: 400;
+  --font-bold: 700;
+  --font-extra-bold: 800;
+
+  --font-*:initial;
+  --default-font-family:"CretoDispay";
+
+  --font-creto:"CretoDispay";
+  --font-awakening:"AWAKENNING";
+  --leading-normal: 1.2;
+}
+
+@layer base {
+  body {
+    line-height: 1.3;
+    font-weight: 500;
+  }
+}
