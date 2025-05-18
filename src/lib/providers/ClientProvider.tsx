@@ -9,10 +9,8 @@ import {
   fetchInitialRestaurantData,
   fetchAllMenuItemsFromApi,
   selectHasLoadedInitialData,
-  selectHasLoadedAllItems,
   selectRestaurantLoadingState
 } from "../slices/restaurantSlice";
-import { checkAuthStatus } from "../slices/authSlice";
 
 const ReduxInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -21,8 +19,7 @@ const ReduxInitializer: React.FC<{ children: React.ReactNode }> = ({ children })
   const hasLoadedInitial = useSelector(selectHasLoadedInitialData);
 
   useEffect(() => {
-    dispatch(checkAuthStatus());
-    if (initialLoadingStatus === 'idle') {
+  if (initialLoadingStatus === 'idle') {
       console.log("ReduxInitializer: Dispatching fetchInitialRestaurantData.");
       dispatch(fetchInitialRestaurantData());
   }

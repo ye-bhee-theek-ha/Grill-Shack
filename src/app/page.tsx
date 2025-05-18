@@ -14,9 +14,6 @@ import LocationComponent from "@/components/OurLocation";
 import { useRef } from "react";
 import Featuring from "@/components/featuring";
 import Footer from "@/components/Footer";
-import { useSelector } from "react-redux";
-import { selectRestaurantInfo } from "@/lib/slices/restaurantSlice";
-
 
 export default function Home() {
 

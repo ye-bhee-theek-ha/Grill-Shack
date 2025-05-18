@@ -2,15 +2,7 @@
 
 import React, { use, useState } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 
-import cart from '@/../public/Svgs/Cart icon.svg'
-import UserProfile from './UserProfile';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch } from '@/lib/store/store';
-import { selectCartTotalItemCount, selectIsCartOpen, toggleCart } from '@/lib/slices/cartSlice';
-import CartModal from './CartModal';
-import ConfirmDetailsModal from './ConfirmDetailsModal';
 interface AnimatedCTAButtonProps {
   onSignInClick: () => void;
   handelOrderNowClick?: () => void;
@@ -104,15 +96,7 @@ export const AnimatedCTAButton_LoggedOut:React.FC<AnimatedCTAButtonProps> = ({ o
 
 export const AnimatedCTAButton_LoggedIn = ({handelOrderNowClick, OnLoginRequired}: {handelOrderNowClick?:() => void, OnLoginRequired?: () => void}) => {
 
-  const dispatch = useDispatch<AppDispatch>();
-  const cart_alerts = useSelector(selectCartTotalItemCount);
-  const isCartOpen = useSelector(selectIsCartOpen);
 
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-
-  const handleCartClick = () => {
-    dispatch(toggleCart());
-  };
 
 
   return (

@@ -15,20 +15,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch } from '@/lib/store/store';
 import { CartItemOptions, MenuItem } from '@/constants/types';
 import { selectPopularItems, selectRestaurantInfo } from '@/lib/slices/restaurantSlice';
-import { addItem } from '@/lib/slices/cartSlice';
 
 
 export default function Home_menu_section() {
 
 	const dispatch = useDispatch<AppDispatch>();
 	const popularItems = useSelector(selectPopularItems);
+	
 
-	
-	const handleAddToCart = (item: MenuItem, quantity: number = 1, options: CartItemOptions = {}) => {
-	  console.log(`Adding item ${item.id} to cart with options:`, options);
-	  dispatch(addItem({ item, quantity, options }));
-	};
-	
 	const handleToggleFavorite = (itemId: string) => {
 	console.log(`Toggled favorite for item ${itemId}`);
 		// TODO: call to backend
@@ -96,7 +90,7 @@ export default function Home_menu_section() {
 					ref={scrollableMenuRef} 
 					menuItems={popularItems} 
 					onScrollEndChange={handleScrollEndChange} 
-					onAddToCart={handleAddToCart}
+					onAddToCart={() => {}}
 					onToggleFavorite={handleToggleFavorite}
 					onReadMore={handleReadMore}
 				/>

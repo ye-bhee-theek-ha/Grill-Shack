@@ -32,7 +32,6 @@ const ScrollableMenuCards = forwardRef<ScrollableMenuRef, ScrollableMenuCardsPro
     const [isAtEnd, setIsAtEnd] = useState(false);
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
     const scrollNext = useCallback(() => {
       const container = scrollContainerRef.current;
