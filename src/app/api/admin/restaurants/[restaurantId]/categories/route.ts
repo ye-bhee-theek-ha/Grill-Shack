@@ -10,7 +10,8 @@ import type { category, RestaurantInfo } from '@/constants/types';
 // --- POST: Add a New Category ---
 export const POST = withStaffAuth<{ success: boolean; message: string; newCategory?: category }>(
     async (request, context, user) => {
-        const { restaurantId } = context.params as { restaurantId: string };
+        const params = await context.params;
+        const { restaurantId } = params as { restaurantId: string };
         let body: { name: string };
 
         try {

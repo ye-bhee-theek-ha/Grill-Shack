@@ -10,7 +10,8 @@ import type { MenuItem, RestaurantInfo } from '@/constants/types';
 // --- PUT: Update an Existing Menu Item ---
 export const PUT = withStaffAuth<{ success: boolean; message: string }>(
     async (request, context, user) => {
-        const { restaurantId, menuItemId } = context.params as { restaurantId: string; menuItemId: string };
+        const params = await context.params;
+        const { restaurantId, menuItemId } = params as { restaurantId: string; menuItemId: string };
         let body: Partial<Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt'>>; // Allow partial updates
 
         try {
@@ -92,7 +93,8 @@ export const PUT = withStaffAuth<{ success: boolean; message: string }>(
 // --- DELETE: Remove a Menu Item ---
 export const DELETE = withStaffAuth<{ success: boolean; message: string }>(
     async (request, context, user) => {
-        const { restaurantId, menuItemId } = context.params as { restaurantId: string; menuItemId: string };
+        const params = await context.params;
+        const { restaurantId, menuItemId } = params as { restaurantId: string; menuItemId: string };
 
         if (!restaurantId || !menuItemId) return NextResponse.json({ success: false, message: 'Missing Restaurant or Menu Item ID.' }, { status: 400 });
 

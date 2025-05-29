@@ -21,7 +21,8 @@ interface UpdateFaqsResponse {
 // --- PUT Handler to Update/Replace FAQs ---
 export const PUT = withStaffAuth<UpdateFaqsResponse>(
     async (request, context, user) => {
-        const { restaurantId } = context.params as { restaurantId: string };
+        const params = await context.params;
+        const { restaurantId } = params as { restaurantId: string };
         const staffUserId = user.uid;
 
         // --- Input Validation ---

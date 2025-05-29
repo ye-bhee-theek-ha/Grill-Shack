@@ -10,7 +10,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 // GET handler to fetch orders for the authenticated user
 const handler = async (
     req: NextRequest,
-    context: { params: Record<string, string | string[]> },
+    context: { params: Promise<Record<string, string | string[]>> },
     user: DecodedIdToken
 ): Promise<NextResponse<Order[] | { message: string }>> => {
 

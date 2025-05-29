@@ -30,7 +30,7 @@ const updateAddressSchema = z.object({
   
 
 // --- GET Handler Logic ---
-const handleGetAddresses = async (req: NextRequest, context: { params: Record<string, string | string[]> }, user: DecodedIdToken) => {
+const handleGetAddresses = async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }, user: DecodedIdToken) => {
     const userId = user.uid;
     const userRef = adminDb.collection('users').doc(userId);
 
@@ -55,7 +55,7 @@ const handleGetAddresses = async (req: NextRequest, context: { params: Record<st
 };
 
 // --- POST Handler ---
-const handlePostAddress = async (req: NextRequest, context: { params: Record<string, string | string[]> }, user: DecodedIdToken) => {
+const handlePostAddress = async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }, user: DecodedIdToken) => {
     const userId = user.uid;
     const userRef = adminDb.collection('users').doc(userId);
     try {
@@ -94,7 +94,7 @@ const handlePostAddress = async (req: NextRequest, context: { params: Record<str
 };
 
 // --- PUT Handler (Highlight: Added This Entire Handler) ---
-const handlePutAddress = async (req: NextRequest, context: { params: Record<string, string | string[]> }, user: DecodedIdToken) => {
+const handlePutAddress = async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }, user: DecodedIdToken) => {
     const userId = user.uid;
     const userRef = adminDb.collection('users').doc(userId);
 
@@ -169,7 +169,7 @@ const handlePutAddress = async (req: NextRequest, context: { params: Record<stri
 
 
 // --- DELETE Handler (Highlight: Added This Entire Handler) ---
-const handleDeleteAddress = async (req: NextRequest, context: { params: Record<string, string | string[]> }, user: DecodedIdToken) => {
+const handleDeleteAddress = async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }, user: DecodedIdToken) => {
     const userId = user.uid;
     const userRef = adminDb.collection('users').doc(userId);
 

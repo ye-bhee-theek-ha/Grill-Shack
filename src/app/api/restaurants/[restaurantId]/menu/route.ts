@@ -32,7 +32,7 @@ export async function GET(
 
         // --- Data Transformation ---
         const menuItems: MenuItem[] = [];
-        querySnapshot.forEach((doc) => {
+        querySnapshot.forEach((doc:any) => {
             menuItems.push({
                 id: doc.id,
                 ...(doc.data() as Omit<MenuItem, 'id'>),

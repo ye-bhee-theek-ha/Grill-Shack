@@ -14,7 +14,7 @@ interface OrderResponse extends Order {
 
 export const GET = withStaffAuth<OrderResponse | {}>(
     async (request, context, user) => {
-        const { restaurantId, orderId } = context.params;
+        const { restaurantId, orderId } = await context.params;
 
         // --- Input Validation ---
         if (!orderId || typeof orderId !== 'string') {
@@ -56,6 +56,3 @@ export const GET = withStaffAuth<OrderResponse | {}>(
         }
     }
 );
-
-// Note: PUT/PATCH for full order update or DELETE could be added here if needed,
-// but often only status updates are required via a separate endpoint.
