@@ -8,7 +8,7 @@ import { withLoginRequired } from '@/utils/withAuth'; // Adjust path
 
 const handleConfirmPhoneVerification = async (
   req: NextRequest,
-  context: { params: Record<string, string | string[]> },
+  context: { params: Promise<Record<string, string | string[]>> },
   user: DecodedIdToken
   ) => {
   const userId = user.uid; // Get user ID from the validated session cookie token

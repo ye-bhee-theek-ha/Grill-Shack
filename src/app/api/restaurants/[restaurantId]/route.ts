@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/firebaseAdmin';
 import type { RestaurantInfo, MenuItem } from '@/constants/types';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getApps } from 'firebase-admin/app';
 
 
 // API response structure
@@ -21,7 +21,11 @@ export async function GET(
     { params }: { params: Promise<{ restaurantId: string }> }
 ): Promise<NextResponse<RestaurantPublicDataResponse | { message: string }>> {
 
-    const { restaurantId } = await params;
+    console.log(`[API Route Start /api/restaurants/{id}] Received request. Current Firebase app count: ${getApps().length}`);
+    console.log('[API Route Start /api/restaurants/{id}] adminDb object is: ', adminDb ? 'Defined' : '!!! UNDEFINED !!!');
+
+    const resolvedParams = await params; // Await the params promise
+    const { restaurantId } = resolvedParams;
 
     // --- Input Validation ---
     if (!restaurantId || typeof restaurantId !== 'string') {
@@ -69,7 +73,7 @@ export async function GET(
 
             const popularItemsSnap = await popularItemsQuery.get();
 
-            popularItemsSnap.forEach((doc) => {
+            popularItemsSnap.forEach((doc:any) => {
                 popularItems.push({
                     id: doc.id,
                     ...(doc.data() as Omit<MenuItem, 'id'>),

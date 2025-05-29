@@ -11,7 +11,7 @@ export interface AuthResult {
 
 type AppRouteHandlerFn<T = any> = (
   req: NextRequest,
-  context: { params: Record<string, string | string[]> },
+  context: { params: Promise<Record<string, string | string[]>> },
   user: DecodedIdToken
 ) => Promise<NextResponse<T>>;
 
@@ -121,12 +121,13 @@ export async function verifyAuth(
  * @param requiredRole Optional role required to access the route
  */
 export function withAuth<T>(
-  handler: (req: NextRequest, context: { params: Record<string, string | string[]> }, user: DecodedIdToken) => Promise<NextResponse<T>>,
+  handler: (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }, user: DecodedIdToken) => Promise<NextResponse<T>>,
   requiredRoles?: string | string[]
 ) {
-  return async (request: NextRequest, context: { params: Record<string, string | string[]>} ) => {
+  return async (request: NextRequest, context: { params: Promise<Record<string, string | string[]>>} ) => {
 
-    const restaurantId = await context.params?.restaurantId as string | undefined;
+    const params = await context.params;
+    const restaurantId = params?.restaurantId as string | undefined;
     const rolesToCheck = requiredRoles ? (Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles]) : [];
 
 

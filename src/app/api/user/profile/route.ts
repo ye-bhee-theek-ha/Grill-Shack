@@ -19,7 +19,7 @@ const profileUpdateSchema = z.object({
 });
 
 // --- GET Handler Logic ---
-const handleGetUserProfile = async (req: NextRequest, context: { params: Record<string, string | string[]> }, user: DecodedIdToken) => {
+const handleGetUserProfile = async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }, user: DecodedIdToken) => {
   const userId = user.uid; // Get user ID from the authenticated user token passed by withAuth
 
   try {
@@ -56,7 +56,7 @@ const handleGetUserProfile = async (req: NextRequest, context: { params: Record<
 };
 
 // --- PUT Handler Logic ---
-const handleUpdateUserProfile = async (req: NextRequest, context: { params: Record<string, string | string[]> }, user: DecodedIdToken) => {
+const handleUpdateUserProfile = async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }, user: DecodedIdToken) => {
   const userId = user.uid;
 
   try {

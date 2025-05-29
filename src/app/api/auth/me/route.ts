@@ -5,7 +5,7 @@ import { withAuth, withLoginRequired } from '@/utils/withAuth';
 
 async function meHandler(
   req: NextRequest,
-  context: { params: Record<string, string | string[]> },
+  context: { params: Promise<Record<string, string | string[]>> },
   user: import('firebase-admin/auth').DecodedIdToken
 ): Promise<NextResponse<{ message: string } | { uid: string; email: string | undefined; displayName: string; role: string; loyaltyPoints: number; photoURL: string | null, phoneNumber: string | null }>> {
   try {

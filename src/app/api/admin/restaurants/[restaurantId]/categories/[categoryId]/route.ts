@@ -1,19 +1,19 @@
 // src/app/api/admin/restaurants/[restaurantId]/categories/[categoryName]/route.ts
-// Note: The dynamic parameter in the filename should match the parameter name used below (categoryName)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/firebaseAdmin'; // Adjust path
 import { withStaffAuth } from '@/utils/withAuth'; // Adjust path
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { FieldValue } from 'firebase-admin/firestore';
-// Corrected type import to lowercase 'category' and removed unused MenuItem
-import type { category, RestaurantInfo } from '@/constants/types'; // Adjust path
+
+import type { category, RestaurantInfo } from '@/constants/types'; 
 
 // --- DELETE: Remove a Category by Name ---
 export const DELETE = withStaffAuth<{ success: boolean; message: string }>(
     async (request, context, user) => {
-        // Use categoryName from the route parameters
-        const { restaurantId, categoryName: encodedCategoryName } = context.params as { restaurantId: string; categoryName: string };
+
+      const params = await context.params;
+      const { restaurantId, categoryName: encodedCategoryName } = params as { restaurantId: string; categoryName: string };
         // Decode the category name from the URL parameter
         const categoryName = decodeURIComponent(encodedCategoryName || '');
 
@@ -85,7 +85,8 @@ export const DELETE = withStaffAuth<{ success: boolean; message: string }>(
 export const PUT = withStaffAuth<{ success: boolean; message: string }>(
     async (request, context, user) => {
         // Use categoryName from route parameters
-        const { restaurantId, categoryName: encodedOldCategoryName } = context.params as { restaurantId: string; categoryName: string };
+        const params = await context.params;
+        const { restaurantId, categoryName: encodedOldCategoryName } = params as { restaurantId: string; categoryName: string };
         const oldCategoryName = decodeURIComponent(encodedOldCategoryName || '');
 
         let body: { name: string }; // Expecting the new name in the body

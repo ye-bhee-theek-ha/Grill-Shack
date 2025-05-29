@@ -12,7 +12,8 @@ import { v4 as uuidv4 } from 'uuid'; // For generating category IDs
 // --- POST: Add a New Menu Item (Creates Category if not found) ---
 export const POST = withStaffAuth<{ success: boolean; message: string; menuItemId?: string }>(
     async (request, context, user) => {
-        const { restaurantId } = context.params as { restaurantId: string };
+        const params = await context.params;
+        const { restaurantId } = params as { restaurantId: string };
         // Expect categoryId to be the *name* or *ID* of the target category
         let body: Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt'> & { categoryId: string };
 

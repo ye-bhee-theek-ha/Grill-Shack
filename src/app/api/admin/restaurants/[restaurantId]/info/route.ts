@@ -25,7 +25,8 @@ interface UpdateInfoResponse {
 // --- PUT Handler to Update Restaurant Info ---
 export const PUT = withStaffAuth<UpdateInfoResponse>(
     async (request, context, user) => {
-        const { restaurantId } = context.params as { restaurantId: string };
+        const params = await context.params;
+        const { restaurantId } = params as { restaurantId: string };
         const staffUserId = user.uid;
 
         // --- Input Validation ---

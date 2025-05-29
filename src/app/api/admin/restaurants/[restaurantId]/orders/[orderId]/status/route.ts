@@ -24,7 +24,8 @@ interface UpdateStatusResponse {
 // Using PUT implies replacing the status, PATCH could also be used
 export const PUT = withStaffAuth<UpdateStatusResponse>(
     async (request, context, user) => {
-        const { restaurantId, orderId } = context.params as { restaurantId: string; orderId: string };
+        const params = await context.params;
+        const { restaurantId, orderId } = params as { restaurantId: string; orderId: string };
         const staffUserId = user.uid; // ID of the staff member making the change
 
         // --- Input Validation ---
