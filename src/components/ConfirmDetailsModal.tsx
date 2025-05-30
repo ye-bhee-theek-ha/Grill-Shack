@@ -1,6 +1,7 @@
 // src/components/ConfirmDetailsModal.tsx (Example Path)
 
 // square integration
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
