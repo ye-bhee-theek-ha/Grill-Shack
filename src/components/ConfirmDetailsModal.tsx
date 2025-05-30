@@ -1,4 +1,4 @@
-// src/components/ConfirmDetailsModal.tsx (Example Path)
+// src/components/ConfirmDetailsModal.tsx
 
 "use client";
 
