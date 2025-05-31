@@ -5,7 +5,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { loadStripe } from "@stripe/stripe-js";
 
 import { RootState, AppDispatch } from "@/lib/store/store";
 import { useUser } from "@/hooks/useUser";
@@ -18,12 +17,6 @@ import {
 import apiClient from "@/lib/apiClient";
 
 import { CartItem as CartItemTypeDefinition } from "@/constants/types";
-import placeholderImg from "@/../public/Images/Product img 1.png";
-
-// --- Initialize Stripe ---
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
-);
 
 // --- Helper Functions & Components (Keep formatCurrency, LoadingSpinner, ErrorIcon, CloseIcon) ---
 const formatCurrency = (amount: number): string => {
@@ -146,7 +139,7 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
     }
 
     try {
-      console.log("Calling backend to initiate checkout session...");
+      console.log("Calling backend to initiate Square checkout...");
 
       const response = await apiClient.post("/orders/initiate-checkout", {
         cartItems: cartItems,
@@ -154,35 +147,33 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
         restaurantId: process.env.NEXT_PUBLIC_FIREBASE_RESTAURANT_ID,
       });
 
-      const { sessionId } = response.data;
+      const { checkoutUrl, orderId, message } = response.data;
 
-      if (!sessionId) {
-        throw new Error("Backend did not return a session ID.");
+      if (!checkoutUrl) {
+        throw new Error(
+          message || "Backend did not return a Square checkout URL."
+        );
       }
 
-      console.log("Received Stripe Session ID:", sessionId);
+      console.log(
+        "Received Square Checkout URL:",
+        checkoutUrl,
+        "Order ID:",
+        orderId
+      );
 
-      const stripe = await stripePromise;
-      if (stripe) {
-        const { error: stripeError } = await stripe.redirectToCheckout({
-          sessionId,
-        });
-        if (stripeError) {
-          console.error("Stripe redirection error:", stripeError);
-          setError(stripeError.message || "Failed to redirect to payment.");
-          // Allow retry on redirection failure
-          setIsProcessing(false);
-        }
-        // If successful, user leaves the page.
-        // If fails, error is shown, isProcessing becomes false.
-      } else {
-        setError("Stripe.js failed to load.");
-        setIsProcessing(false);
-      }
+      // --- Redirect to Square Checkout Page ---
+      window.location.href = checkoutUrl;
+      // User will be redirected away from your site to Square's hosted checkout.
+      // No need for stripe.redirectToCheckout()
+
+      // setIsProcessing(false); // Not strictly needed as user is redirected.
+      // If redirect fails or is blocked, an error might be thrown above.
     } catch (err: any) {
-      console.error("Error initiating checkout via backend:", err);
+      console.error("Error initiating Square checkout via backend:", err);
       setError(
         err.response?.data?.message ||
+          err.response?.data?.error ||
           err.message ||
           "Could not initiate checkout."
       );
