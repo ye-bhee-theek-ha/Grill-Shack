@@ -38,7 +38,6 @@ const calculateBackendPriceForItem = async (
     console.error(
       `MenuItem with ID ${cartItem.id} not found in DB for restaurant ${restaurantId}.`
     );
-    // Handle this error appropriately - maybe skip item or throw error
     throw new Error(`Menu item ${cartItem.name} not found.`);
   }
   const baseMenuItem = menuItemSnap.data() as MenuItem;
@@ -87,7 +86,10 @@ const handler = async (
   context: { params: Promise<Record<string, string | string[]>> },
   user: DecodedIdToken
 ): Promise<
-  NextResponse<{ sessionId: string } | { message: string; error?: any }>
+  NextResponse<
+    | { checkoutUrl: string; orderId: string; message: string }
+    | { message: string; error?: any }
+  >
 > => {
   if (req.method !== "POST") {
     return NextResponse.json(
@@ -96,7 +98,7 @@ const handler = async (
     );
   }
 
-  const userId = user.uid; // Get userId from authenticated user
+  const userId = user.uid;
 
   try {
     const body = (await req.json()) as InitiateCheckoutRequestBody;
@@ -119,10 +121,33 @@ const handler = async (
       );
     }
 
-    if (!process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID) {
-      console.error("Square Location ID is not configured.");
+    const squareLocationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID;
+    if (!squareLocationId) {
+      console.error(
+        "Square Location ID (NEXT_PUBLIC_SQUARE_LOCATION_ID) is not configured."
+      );
       return NextResponse.json(
-        { message: "Payment system configuration error." },
+        { message: "Payment system configuration error (Location ID)." },
+        { status: 500 }
+      );
+    }
+    if (!process.env.SQUARE_ENVIRONMENT) {
+      console.error(
+        "Square Environment (SQUARE_ENVIRONMENT) is not configured for the backend."
+      );
+      return NextResponse.json(
+        { message: "Payment system server configuration error (Environment)." },
+        { status: 500 }
+      );
+    }
+    if (!process.env.SQUARE_ACCESS_TOKEN) {
+      console.error(
+        "Square Access Token (SQUARE_ACCESS_TOKEN) is not configured for the backend."
+      );
+      return NextResponse.json(
+        {
+          message: "Payment system server configuration error (Access Token).",
+        },
         { status: 500 }
       );
     }
@@ -133,7 +158,6 @@ const handler = async (
 
     // --- Prepare line items using backend price calculation ---
     const orderLineItems: any[] = [];
-    let totalAmount = 0;
 
     for (const item of cartItems) {
       try {
@@ -142,9 +166,7 @@ const handler = async (
           item
         );
         const unitAmountCents = Math.round(unitAmountDollars * 100);
-        totalAmount += unitAmountCents * item.quantity;
 
-        // Format options for description/note
         let note = "";
         const optionsDesc = Object.entries(item.selectedOptions || {})
           .map(([key, value]) => {
@@ -162,12 +184,12 @@ const handler = async (
 
         orderLineItems.push({
           name: item.name,
-          quantity: String(item.quantity), // Square expects quantity as string
+          quantity: String(item.quantity),
           basePriceMoney: {
-            amount: BigInt(unitAmountCents), // Price in cents
-            currency: "USD", // Or your currency
+            amount: BigInt(unitAmountCents),
+            currency: "USD",
           },
-          note: note.substring(0, 500), // Max 500 chars for note
+          note: note.substring(0, 500),
         });
       } catch (priceError: any) {
         console.error(
@@ -184,122 +206,136 @@ const handler = async (
 
     // --- Define Redirect URLs ---
     const appBaseUrl = process.env.NEXT_PUBLIC_APP_BASE_URL;
-    // Square doesn't use {CHECKOUT_SESSION_ID} in redirect_url like Stripe.
-    // You'll get the order ID from the response and can use it in webhooks.
-    // For the success URL, you might want to append your internal order ID or the Square order ID
-    // if you need to fetch details on the success page, but webhooks are more reliable for fulfillment.
-    const redirect_url = `${appBaseUrl}/checkout/success`; // User is redirected here after payment
+    if (!appBaseUrl) {
+      console.error(
+        "Application Base URL (NEXT_PUBLIC_APP_BASE_URL) is not configured."
+      );
+      return NextResponse.json(
+        { message: "Application configuration error." },
+        { status: 500 }
+      );
+    }
+    const redirect_url = `${appBaseUrl}/checkout/success`;
 
-    // --- Create Square Order and Checkout ---
-    console.log("Creating Square Order and Checkout...");
-    const idempotencyKey = randomUUID(); // Generate a unique key for each request
+    // --- Create Payment Link and Order in a Single Request ---
+    console.log("Creating Square Payment Link and Order...");
+    const paymentLinkIdempotencyKey = randomUUID(); // This idempotency key applies to the payment link creation.
+    // Square will generate an idempotency key for the order if not provided within the order object.
 
-    const orderPayload = {
-      idempotencyKey: idempotencyKey, // Important for retries
+    const paymentLinkPayload = {
+      idempotencyKey: paymentLinkIdempotencyKey,
       order: {
-        locationId: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID, // Your Square Location ID
+        // Define the order directly here
+        locationId: squareLocationId,
         lineItems: orderLineItems,
-        // You can add customerId if you manage customers in Square
-        // customerId: squareCustomerId,
-        // Add metadata for your reference (available in webhooks and API)
         metadata: {
+          // Metadata is crucial for your webhook
           userId: userId,
           restaurantId: restaurantId,
-          deliveryAddress: JSON.stringify(deliveryAddress), // Store delivery address
+          deliveryAddress: JSON.stringify(deliveryAddress),
           cartItems: JSON.stringify(
             cartItems.map((i) => ({
-              // Store simplified cart for webhook
               itemId: i.id,
               name: i.name,
               quantity: i.quantity,
               options: i.selectedOptions,
-              // unitPrice: calculated per item (already done for lineItems)
             }))
           ),
         },
-      },
-    };
-
-    // You can create just an order first, then a payment link for that order,
-    // or use the Checkout API which can create an order implicitly or take an existing one.
-    // Using Checkout API with an explicit order:
-
-    const createOrderResponse = await squareClient.orders.create(orderPayload);
-    const createdOrder = createOrderResponse.order;
-
-    console.log("orderPayload =>", orderPayload);
-
-    if (!createdOrder || !createdOrder.id) {
-      throw new Error("Square order creation failed.");
-    }
-    const squareOrderId = createdOrder.id;
-
-    // Now create a payment link (checkout) for this order
-    const checkoutPayload = {
-      idempotencyKey: randomUUID(), // New idempotency key for this API call
-      order: {
-        locationId: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID,
-        lineItems: orderLineItems,
-        metadata: orderPayload.order.metadata,
+        // If you need a specific idempotency key for the order itself,
+        // you can add it inside this order object:
+        // idempotency_key: randomUUID(),
       },
       checkoutOptions: {
         allowTipping: false,
         redirectUrl: redirect_url,
-        // merchantSupportEmail: "support@example.com",
-        askForShippingAddress: false, //TODO
+        askForShippingAddress: false,
       },
-      // Pre-populate buyer email if available
-      prePopulateBuyerEmail: user.email,
+      prePopulateBuyerEmail: user.email || undefined,
     };
-
-    // If you want to create a checkout for an existing order ID:
-    // This is often preferred to ensure atomicity and use the order created above.
-    const paymentLinkPayload = {
-      idempotencyKey: randomUUID(),
-      orderId: squareOrderId,
-      checkoutOptions: {
-        allowTipping: false,
-        redirectUrl: redirect_url,
-        merchantSupportEmail: "support@example.com",
-        askForShippingAddress: false, // You already have the address
-      },
-
-      // prePopulateBuyerEmail: user.email,
-    };
-
-    // Using createPaymentLink API:
-    const { paymentLink, relatedResources } =
-      await squareClient.checkout.paymentLinks.create(checkoutPayload);
-
-    // The 'paymentLink' object contains 'url' and 'orderId' (which should match squareOrderId)
-
-    if (!paymentLink || !paymentLink.url || !paymentLink.orderId) {
-      throw new Error("Square payment link creation failed.");
-    }
 
     console.log(
-      "Square Payment Link created:",
-      paymentLink.url,
-      "Order ID:",
-      paymentLink.orderId
+      "Payment Link and Order payload being sent to Square:",
+      JSON.stringify(
+        paymentLinkPayload,
+        (key, value) => (typeof value === "bigint" ? value.toString() : value), // Replacer for BigInt in logging
+        2
+      )
     );
+
+    const paymentLinkResponse = await squareClient.checkout.paymentLinks.create(
+      paymentLinkPayload
+    );
+
+    // Adjust destructuring based on your Square SDK version's response structure
+    const paymentLinkObject =
+      paymentLinkResponse.paymentLink || paymentLinkResponse.paymentLink;
+    const createdOrderObject =
+      paymentLinkResponse.relatedResources?.orders?.[0];
+
+    if (
+      !paymentLinkObject ||
+      !paymentLinkObject.url ||
+      !paymentLinkObject.orderId
+    ) {
+      console.error(
+        "Square payment link creation failed or did not return expected fields. Full response:",
+        paymentLinkResponse
+      );
+      // Try to log the order ID from the created order object if available
+      if (createdOrderObject && createdOrderObject.id) {
+        console.error(
+          "However, an order might have been created with ID:",
+          createdOrderObject.id
+        );
+      }
+      throw new Error(
+        "Square payment link creation failed (details in server log)."
+      );
+    }
+
+    const squareOrderId = paymentLinkObject.orderId; // This is the ID of the order created with the payment link
+
+    console.log(`Square Payment Link created: ${paymentLinkObject.url}`);
+    console.log(
+      `Associated Square Order ID (from payment link): ${squareOrderId}`
+    );
+
+    if (
+      createdOrderObject &&
+      createdOrderObject.id &&
+      createdOrderObject.id !== squareOrderId
+    ) {
+      console.warn(
+        `Order ID mismatch! PaymentLink.orderId: ${squareOrderId}, RelatedResources.Order.id: ${createdOrderObject.id}. Using PaymentLink.orderId.`
+      );
+    } else if (createdOrderObject && createdOrderObject.id) {
+      console.log(
+        `Confirmed Order ID (from related resources): ${createdOrderObject.id}`
+      );
+    }
 
     return NextResponse.json(
       {
-        checkoutUrl: paymentLink.url,
-        orderId: paymentLink.orderId,
-        message: "Checkout created successfully",
+        checkoutUrl: paymentLinkObject.url,
+        orderId: squareOrderId, // Use the orderId from the payment link response
+        message: "Checkout and order created successfully",
       },
       { status: 200 }
     );
   } catch (error: any) {
     console.error("API Error /api/orders/initiate-checkout (Square):", error);
-    // Check for Square specific errors if possible
-    if (error.errors) {
-      // Square API errors often come in an array
-      console.error("Square API Errors:", error.errors);
-      const messages = error.errors
-        .map((e: any) => `${e.category} - ${e.code}: ${e.detail}`)
+    const squareErrors =
+      error.errors || error.body?.errors || error.result?.errors;
+    if (squareErrors && Array.isArray(squareErrors)) {
+      console.error("Square API Errors:", squareErrors);
+      const messages = squareErrors
+        .map(
+          (e: any) =>
+            `[${e.category}/${e.code}]: ${e.detail}${
+              e.field ? ` (field: ${e.field})` : ""
+            }`
+        )
         .join("; ");
       return NextResponse.json(
         { message: "Failed to initiate payment with Square.", error: messages },

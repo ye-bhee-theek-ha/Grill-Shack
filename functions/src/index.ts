@@ -19,19 +19,21 @@ const db = admin.firestore();
 // firebase functions:config:set square.environment="sandbox_or_production"
 // firebase functions:config:set webhook.url="YOUR_DEPLOYED_FUNCTION_URL" // For signature verification
 
-const squareConfig = functions.config().square;
-const webhookConfig = functions.config().webhook;
-
-const squareClient = new SquareClient({
-  environment:
-    process.env.SQUARE_ENVIRONMENT === "production"
-      ? SquareEnvironment.Production
-      : SquareEnvironment.Sandbox,
-  token: process.env.SQUARE_ACCESS_TOKEN,
-});
-
 export const handleSquareWebhook = functions.https.onRequest(
   async (req, res) => {
+    const signatureKey = process.env.SQUARE_SIGNATURE_KEY;
+    const accessToken = process.env.SQUARE_ACCESS_TOKEN;
+    const squareEnvironment = process.env.SQUARE_ENVIRONMENT;
+    const notificationUrl = process.env.WEBHOOK_URL;
+
+    const squareClient = new SquareClient({
+      environment:
+        squareEnvironment === "production"
+          ? SquareEnvironment.Production
+          : SquareEnvironment.Sandbox,
+      token: accessToken,
+    });
+
     if (req.method !== "POST") {
       functions.logger.warn(
         "Webhook received with non-POST method",
@@ -47,12 +49,12 @@ export const handleSquareWebhook = functions.https.onRequest(
       ? req.rawBody.toString()
       : JSON.stringify(req.body);
 
-    if (!squareConfig?.signature_key || !webhookConfig?.url) {
+    if (!signatureKey || !notificationUrl) {
       functions.logger.error(
         "CRITICAL: Square webhook signature key or function URL is not configured in Firebase environment.",
         {
-          hasSignatureKey: !!squareConfig?.signature_key,
-          hasWebhookUrl: !!webhookConfig?.url,
+          hasSignatureKey: !!signatureKey,
+          hasWebhookUrl: !!notificationUrl,
         }
       );
       res.status(500).send("Webhook configuration error.");
@@ -63,14 +65,14 @@ export const handleSquareWebhook = functions.https.onRequest(
       const isValid = WebhooksHelper.verifySignature({
         requestBody: rawBody,
         signatureHeader: signature,
-        signatureKey: squareConfig.signature_key,
-        notificationUrl: webhookConfig.url,
+        signatureKey: signatureKey,
+        notificationUrl: notificationUrl,
       });
 
       if (!isValid) {
         functions.logger.warn("Webhook signature validation failed.", {
           signatureReceived: signature,
-          expectedUrl: webhookConfig.url,
+          expectedUrl: notificationUrl,
         });
         res.status(403).send("Forbidden: Invalid signature.");
         return;
@@ -89,18 +91,19 @@ export const handleSquareWebhook = functions.https.onRequest(
     // 2. Process the Event
     const event = req.body;
     functions.logger.info(`Received Square event: ${event.type}`, {
-      eventId: event.id,
+      eventId: event.event_id,
       data: event.data,
     });
 
     try {
       let squareOrderId: string | undefined;
-      let paymentDetailsFromWebhook: Square.Payment | undefined;
+      let paymentDetailsFromWebhook: any | undefined;
       let isConsideredPaid = false;
 
       if (event.type === "payment.updated") {
         paymentDetailsFromWebhook = event.data.object.payment as Square.Payment;
-        squareOrderId = paymentDetailsFromWebhook?.orderId;
+
+        squareOrderId = paymentDetailsFromWebhook?.order_id;
         functions.logger.info(
           `Event type: payment.updated. Order ID: ${squareOrderId}, Payment ID: ${paymentDetailsFromWebhook?.id}, Status: ${paymentDetailsFromWebhook?.status}`
         );
@@ -133,7 +136,7 @@ export const handleSquareWebhook = functions.https.onRequest(
 
       if (!isConsideredPaid) {
         functions.logger.info(
-          `Event for order ${squareOrderId} (Event ID: ${event.id}) does not signify a completed payment. No Firestore action taken.`
+          `Event for order ${squareOrderId} (Event ID: ${event.event_id}) does not signify a completed payment. No Firestore action taken.`
         );
         res
           .status(200)
@@ -159,7 +162,7 @@ export const handleSquareWebhook = functions.https.onRequest(
 
       if (!existingOrderSnap.empty) {
         functions.logger.info(
-          `Order ${squareOrderId} (event ID: ${event.id}) has already been processed and marked as 'paid'. Skipping.`
+          `Order ${squareOrderId} (event ID: ${event.event_id}) has already been processed and marked as 'paid'. Skipping.`
         );
         res
           .status(200)
@@ -178,7 +181,7 @@ export const handleSquareWebhook = functions.https.onRequest(
         );
         // Ensure squareConfig.access_token was available when squareClient was initialized.
         // If not, this call will likely fail.
-        if (!squareConfig?.access_token) {
+        if (!accessToken) {
           functions.logger.error(
             "Square Access Token was not available from Firebase config when client was initialized. Cannot fetch order metadata."
           );
@@ -272,11 +275,12 @@ export const handleSquareWebhook = functions.https.onRequest(
         paymentProvider: "square",
         paymentDetails: paymentDetailsFromWebhook
           ? {
-              id: paymentDetailsFromWebhook.id,
-              status: paymentDetailsFromWebhook.status,
-              cardBrand: paymentDetailsFromWebhook.cardDetails?.card?.cardBrand,
-              last4: paymentDetailsFromWebhook.cardDetails?.card?.last4,
-              sourceType: paymentDetailsFromWebhook.sourceType,
+              id: paymentDetailsFromWebhook.id ?? null,
+              status: paymentDetailsFromWebhook.status ?? null,
+              cardBrand:
+                paymentDetailsFromWebhook.cardDetails?.card?.cardBrand ?? null,
+              last4: paymentDetailsFromWebhook.cardDetails?.card?.last4 ?? null,
+              sourceType: paymentDetailsFromWebhook.sourceType ?? null,
             }
           : null,
         squareDataSnapshot: {
@@ -291,20 +295,20 @@ export const handleSquareWebhook = functions.https.onRequest(
         },
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        webhookEventId: event.id,
+        webhookEventId: event.event_id,
         webhookEventType: event.type,
       };
 
       await firestoreOrderRef.set(orderDataForFirestore, { merge: true });
 
       functions.logger.info(
-        `Order ${squareOrderId} (Event ID: ${event.id}) processed. Firestore doc: ${firestoreOrderPath}`
+        `Order ${squareOrderId} (Event ID: ${event.event_id}) processed. Firestore doc: ${firestoreOrderPath}`
       );
 
       res.status(200).send("Webhook processed successfully and order stored.");
     } catch (error: any) {
       functions.logger.error(
-        `Unhandled error processing webhook event (Event ID: ${event.id}):`,
+        `Unhandled error processing webhook event (Event ID: ${event.event_id}):`,
         error.message,
         error.stack
       );
