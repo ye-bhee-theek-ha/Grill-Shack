@@ -265,13 +265,22 @@ export const handleSquareWebhook = functions.https.onRequest(
       const orderDataForFirestore = {
         squareOrderId: squareOrderId,
         userId: userId,
+        name: metadata.name || "guest",
+        email: metadata.email || null,
+        phone: metadata.phone || null,
         restaurantId: restaurantId,
-        cartItems: cartItemsFromMeta,
+        items: cartItemsFromMeta.map((item: any) => ({
+          menuItemId: item.id,
+          quantity: item.q,
+          selectedOptions: item.o,
+          name: item.n,
+          price: item.p,
+        })),
         deliveryAddress: deliveryAddress,
-        status: "paid",
+        status: "confirmed",
         totalAmount:
           Number(squareOrderDataFromAPI.totalMoney?.amount ?? BigInt(0)) / 100,
-        currency: squareOrderDataFromAPI.totalMoney?.currency || "USD",
+        currency: squareOrderDataFromAPI.totalMoney?.currency || "EUR",
         paymentProvider: "square",
         paymentDetails: paymentDetailsFromWebhook
           ? {

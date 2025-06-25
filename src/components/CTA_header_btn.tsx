@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 
 import cart from "@/../public/Svgs/Cart icon.svg";
-import UserProfile from "./UserProfile";
+import UserProfile from "@/components/Profile/UserProfile";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/lib/store/store";
 import {

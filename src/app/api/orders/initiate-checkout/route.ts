@@ -188,6 +188,7 @@ const handler = async (
           basePriceMoney: {
             amount: BigInt(unitAmountCents),
             currency: "USD",
+            // TODO currency: "USD", // Change to your desired currency
           },
           note: note.substring(0, 500),
         });
@@ -231,20 +232,21 @@ const handler = async (
         metadata: {
           // Metadata is crucial for your webhook
           userId: userId,
+          name: user.name || "",
+          email: user.email || "",
+          // phone: user.phone || "",
           restaurantId: restaurantId,
           deliveryAddress: JSON.stringify(deliveryAddress),
           cartItems: JSON.stringify(
             cartItems.map((i) => ({
-              itemId: i.id,
-              name: i.name,
-              quantity: i.quantity,
-              options: i.selectedOptions,
+              id: i.id,
+              q: i.quantity,
+              o: i.selectedOptions,
+              n: i.name,
+              p: i.price, //string
             }))
           ),
         },
-        // If you need a specific idempotency key for the order itself,
-        // you can add it inside this order object:
-        // idempotency_key: randomUUID(),
       },
       checkoutOptions: {
         allowTipping: false,

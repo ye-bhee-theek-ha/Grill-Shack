@@ -2,37 +2,51 @@
 
 "use client";
 
-import MenuCards from '@/components/MenuPage_menu_cards';
-import { CartItemOptions, MenuItem } from '@/constants/types';
-import { selectAllMenuItems, selectCategories  } from '@/lib/slices/restaurantSlice';
-import { AppDispatch, RootState } from '@/lib/store/store';
-import { group } from 'console';
-import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import ProductBox from './MenuPage_product_box';
-import { addItem } from '@/lib/slices/cartSlice';
+import MenuCards from "@/components/MenuPage_menu_cards";
+import { CartItemOptions, MenuItem } from "@/constants/types";
+import {
+  selectAllMenuItems,
+  selectCategories,
+} from "@/lib/slices/restaurantSlice";
+import { AppDispatch, RootState } from "@/lib/store/store";
+import { group } from "console";
+import React, {
+  useRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useDispatch, useSelector } from "react-redux";
+import ProductBox from "./MenuPage_product_box";
+import { addItem } from "@/lib/slices/cartSlice";
+import useUser from "@/hooks/useUser";
+import { LikeMenuItem, UnLikeMenuItem } from "@/lib/slices/userSlice";
 
 function MenuPage_Menu_Section() {
   const menuItems = useSelector(selectAllMenuItems);
   const categories = useSelector(selectCategories);
   const isLoading = useSelector((state: RootState) => state.restaurant.loading);
+  const { profile } = useUser();
 
   const dispatch = useDispatch<AppDispatch>();
 
-  const [activeCategory, setActiveCategory] = React.useState('');
+  const [activeCategory, setActiveCategory] = React.useState("");
 
   // State to control the ProductBox modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
 
-
   // Refs for category sections using a mutable object
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Callback ref setter function
-  const setSectionRef = useCallback((categoryName: string) => (el: HTMLDivElement | null) => {
-    sectionRefs.current[categoryName] = el;
-  }, []);
+  const setSectionRef = useCallback(
+    (categoryName: string) => (el: HTMLDivElement | null) => {
+      sectionRefs.current[categoryName] = el;
+    },
+    []
+  );
 
   // to observe current category section
   useEffect(() => {
@@ -40,32 +54,37 @@ function MenuPage_Menu_Section() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const name = entry.target.getAttribute('data-category');
+            const name = entry.target.getAttribute("data-category");
             if (name) setActiveCategory(name);
           }
         });
       },
       {
         root: null,
-        rootMargin: '0px',
+        rootMargin: "0px",
         threshold: 0.6, // section is active when 60% in view
       }
     );
-  
+
     // Observe each section
     Object.entries(sectionRefs.current).forEach(([key, el]) => {
       if (el) observer.observe(el);
     });
-  
+
     return () => observer.disconnect();
   }, []);
 
   // Scroll to category section
   const scrollToSection = useCallback((categoryName: string) => {
     const element = sectionRefs.current[categoryName];
-    console.log("scrollToSection - categoryName:", categoryName, "element:", element);
+    console.log(
+      "scrollToSection - categoryName:",
+      categoryName,
+      "element:",
+      element
+    );
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
 
@@ -73,32 +92,61 @@ function MenuPage_Menu_Section() {
   const itemsByCategory = useMemo(() => {
     if (!menuItems || !categories) return {};
     const grouped: { [key: string]: MenuItem[] } = {};
-    categories.forEach(category => {
-      grouped[category.name] = menuItems.filter(item =>
+    categories.forEach((category) => {
+      grouped[category.name] = menuItems.filter((item) =>
         category.ids.includes(item.id)
       );
     });
     return grouped;
   }, [menuItems, categories]);
 
-   const getRecommendedItems = (itemId: string) => {
+  const getRecommendedItems = (itemId: string) => {
     // This is a simple recommendation logic - you should replace with your actual recommendation system
-    const allOtherItems = menuItems?.filter(item => item.id !== itemId) || [];
+    const allOtherItems = menuItems?.filter((item) => item.id !== itemId) || [];
     return allOtherItems.slice(0, 3); // Just get first 3 other items as recommendations
   };
 
   const handleOnReadMore = (id: string) => {
-    const item = menuItems?.find(item => item.id === id);
+    const item = menuItems?.find((item) => item.id === id);
     if (item) {
       setSelectedItem(item);
       setIsModalOpen(true);
     }
   };
 
-  const handleAddToCart = (item: MenuItem, quantity: number = 1, options: CartItemOptions = {}) => {
-    console.log(`Adding item ${item.id} to cart with options:`, options);
+  const handleAddToCart = (
+    item: MenuItem,
+    quantity: number = 1,
+    options: CartItemOptions = {}
+  ) => {
+    if (!item) return;
+
+    // Normalize item.options to always be an array for consistent checking.
+    const itemOptions = item.options
+      ? Array.isArray(item.options)
+        ? item.options
+        : [item.options]
+      : [];
+
+    // Check if any of the item's option groups are marked as required.
+    const hasRequiredOptions = itemOptions.some((opt) => opt.IsRequired);
+
+    // If no options were passed (i.e., a "quick add") AND the item has required options,
+    // we open the modal for customization instead of adding directly to the cart.
+    if (Object.keys(options).length === 0 && hasRequiredOptions) {
+      // TODO console.log(`Item ${item.id} requires selections. Opening modal.`);
+      setSelectedItem(item);
+      setIsModalOpen(true);
+      return; // Stop here to prevent adding to cart prematurely.
+    }
+
+    // If options were provided (from the modal) or the item has no required options, proceed to add.
+    console.log(
+      `handel add to cart Adding item ${item.id} to cart with options:`,
+      options
+    );
     dispatch(addItem({ item, quantity, options }));
-    handleCloseModal();
+    handleCloseModal(); // Close the modal if it was open.
   };
 
   const handleCloseModal = () => {
@@ -107,29 +155,28 @@ function MenuPage_Menu_Section() {
   };
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     if (isModalOpen) {
       // Save current scroll position
       const scrollY = window.scrollY;
-      
+
       // Add styles to prevent body scrolling
-      document.body.style.position = 'fixed';
+      document.body.style.position = "fixed";
       document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      
+      document.body.style.width = "100%";
+
       // Cleanup function to restore scrolling when component unmounts or modal closes
       return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+
         // Restore scroll position
         window.scrollTo(0, scrollY);
       };
     }
   }, [isModalOpen]);
-
 
   // if (isLoading) {
   //   return <div className="flex items-center justify-center w-full h-64">Loading menu...</div>;
@@ -138,10 +185,9 @@ function MenuPage_Menu_Section() {
   return (
     <>
       <div className="flex w-full px-[30px] lg:px-[70px]">
-
         {/* Sidebar */}
-        <div 
-          className="w-[250px] p-[25px] rounded-[30px] border-1 border-white/25 bg-white/5 sticky top-[70px] h-fit overflow-y-auto"
+        <div
+          className="hidden sm:flex w-[250px] p-[25px] rounded-[30px] border-1 border-white/25 bg-white/5 sticky top-[70px] h-fit overflow-y-auto"
           style={{
             boxShadow: "0px 0px 7px 0px rgba(0, 0, 0, 0.06)",
           }}
@@ -150,11 +196,11 @@ function MenuPage_Menu_Section() {
             {categories?.map((category) => (
               <button
                 key={category.name}
-                
                 className={`w-full text-left text-white/25 text-normal3 px-[16px] py-[6px] rounded-full transition-colors ${
-                  activeCategory === category.name ? 'bg-white/[0.1] text-black/50' : 'bg-white/[0.03]'
+                  activeCategory === category.name
+                    ? "bg-white/[0.1] text-black/50"
+                    : "bg-white/[0.03]"
                 }`}
-                
                 onClick={() => scrollToSection(category.name)}
               >
                 {category.name}
@@ -168,24 +214,30 @@ function MenuPage_Menu_Section() {
           {categories?.map((category) => (
             <div
               key={category.name}
-              
               ref={(el) => {
                 sectionRefs.current[category.name] = el;
               }}
-
               data-category={category.name}
-
               className="mb-[20px]"
             >
               {itemsByCategory[category.name]?.length > 0 ? (
                 <div className="">
-                    <MenuCards
-                      title={category.name}
-                      items={itemsByCategory[category.name]}
-                      onReadMore={(id) => {handleOnReadMore(id)}}
-                      onAddToCart={(item, quantity, options) => handleAddToCart(item, quantity, options)}
-                      onToggleFavorite={(id) => console.log(`Toggled favorite for item ${id}`)}
-                    />
+                  <MenuCards
+                    title={category.name}
+                    items={itemsByCategory[category.name]}
+                    onReadMore={(id) => {
+                      handleOnReadMore(id);
+                    }}
+                    onAddToCart={(item, quantity, options) =>
+                      handleAddToCart(item, quantity, options)
+                    }
+                    onToggleFavorite={(id) =>
+                      profile?.likedItems?.includes(id)
+                        ? dispatch(UnLikeMenuItem(id))
+                        : dispatch(LikeMenuItem(id))
+                    }
+                    likedItems={profile?.likedItems || []}
+                  />
                 </div>
               ) : (
                 <p className="text-gray-500">No items found.</p>
@@ -197,25 +249,26 @@ function MenuPage_Menu_Section() {
 
       {/* ProductBox Modal */}
       {isModalOpen && selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-start overflow-y-auto justify-center bg-black/20" onClick={handleCloseModal}>
-          <div className="relative w-fit my-[100px] mx-auto" onClick={(e) => e.stopPropagation()}>
-            <ProductBox 
-              item={selectedItem} 
-              recommendedItems={getRecommendedItems(selectedItem.id)} 
+        <div
+          className="fixed inset-0 z-50 flex items-start overflow-y-auto justify-center bg-black/20"
+          onClick={handleCloseModal}
+        >
+          <div
+            className="relative w-fit my-[100px] mx-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ProductBox
+              item={selectedItem}
+              recommendedItems={getRecommendedItems(selectedItem.id)}
               onAddToCart={(item, quantity, options) => {
-                console.log(`Adding item ${item.id} to cart with options:`, options);
-                console.log(`Adding item ${item.id} to cart with quantity:`, quantity);
-                console.log(`Adding item ${item.id} to cart with item:`, item);
                 handleAddToCart(item, quantity, options);
                 handleCloseModal();
               }}
-
             />
           </div>
         </div>
       )}
     </>
-    
   );
 }
 

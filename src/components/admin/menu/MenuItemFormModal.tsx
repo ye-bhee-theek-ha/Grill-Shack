@@ -12,8 +12,15 @@ import type {
   category,
 } from "@/constants/types";
 import Image from "next/image";
-
-const placeholderImgSrc = "/Images/menu1.png";
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
+import { storage } from "@/lib/firebase/ClientApp";
+import { form } from "framer-motion/client";
+import MenuItemMissingIcon from "@/components/ui/MenuItemMissingIcon";
 
 type MenuItemChoice = MenuItem["options"][0]["choices"][0];
 
@@ -133,6 +140,10 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
   const [tagInput, setTagInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -194,6 +205,18 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
           : value, // Price is handled as string until submission
     }));
   };
+
+  useEffect(() => {
+    if (!photoFile) {
+      setImagePreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(photoFile);
+    setImagePreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [photoFile]);
 
   const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTagInput(e.target.value);
@@ -304,30 +327,32 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
     }));
   };
 
-  
-
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     // Basic check for restaurantId, actual upload logic would be more complex
     if (!restaurantId) {
-        setError("Restaurant ID is missing. Cannot process image.");
-        return;
+      setError("Restaurant ID is missing. Cannot process image.");
+      return;
     }
     setError(null);
-    console.log("Simulating image upload for:", file.name, "for restaurant:", restaurantId);
+
+    // Validate file type and size if needed
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload a valid image file.");
+      return;
+    }
+
+    const maxFileSize = 5 * 1024 * 1024; // 5MB
+
+    if (file.size > maxFileSize) {
+      setError("File size exceeds 5MB limit.");
+      return;
+    }
+
     // Display preview
+    setPhotoFile(file);
     setFormData((prev) => ({ ...prev, imageUrl: URL.createObjectURL(file) }));
-    // Here you would typically call an upload service
-    // For example:
-    // const uploadedImageUrl = await uploadImageService(file, restaurantId);
-    // if (uploadedImageUrl) {
-    //   setFormData((prev) => ({ ...prev, imageUrl: uploadedImageUrl }));
-    // } else {
-    //   setError("Image upload failed.");
-    //   setFormData((prev) => ({ ...prev, imageUrl: "" })); // Clear preview or revert
-    //   if(fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
-    // }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -359,53 +384,98 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
           setError(`Choice name in "${opt.Question}" cannot be empty.`);
           return;
         }
-        if (isNaN(choice.price) ) { // choice.price is already a number
-            setError(`Price for choice "${choice.name}" in "${opt.Question}" must be a valid number.`);
-            return;
+        if (isNaN(choice.price)) {
+          // choice.price is already a number
+          setError(
+            `Price for choice "${choice.name}" in "${opt.Question}" must be a valid number.`
+          );
+          return;
         }
       }
     }
 
     setIsSaving(true);
 
-    const finalOptions = formData.options.map(
-      ({ id, choices, ...restOpt }) => ({
-        ...restOpt,
-        choices: choices.map(({ id: choiceId, ...restChoice }) => restChoice),
-      })
-    );
+    try {
+      let finalImageUrl = formData.imageUrl;
+      const oldPhotoURL = formData.imageUrl;
 
-    const saveData: Omit<MenuItem, "id"> | MenuItem = {
-      ...(isEditing && itemToEdit ? { id: itemToEdit.id } : {}),
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-      price: String(priceValue), // Use the parsed float
-      categoryId: formData.categoryId,
-      tags: formData.tags.map((t) => t.trim()).filter((t) => t),
-      options: finalOptions,
-      isAvailable: formData.isAvailable,
-      imageUrl: formData.imageUrl, // This would be the URL from your storage after upload
-      loyaltyPoints: formData.loyaltyPoints || 0,
-    };
+      // Step 1: Handle new file upload if one exists
+      if (photoFile) {
+        console.log("Uploading new menu image...");
+        const filePath = `/restaurant_assets/DMGglrM762mp6jpOqkqF/menuImages/${
+          formData.name
+        }-${Date.now()}`;
+        const storageRef = ref(storage, filePath);
 
-    // Ensure 'id' is not present when creating a new item
-    if (!isEditing && "id" in saveData) {
-      delete (saveData as any).id;
-    }
+        await uploadBytes(storageRef, photoFile);
 
-    console.log("Saving menu item data:", saveData);
-    const success = await onSave(saveData as MenuItem); // Cast to MenuItem for onSave
-    setIsSaving(false);
+        finalImageUrl = await getDownloadURL(storageRef);
+      }
 
-    if (!success) {
-      // Error might be set by onSave, or use a generic one
-      setError(
-        error || "Failed to save menu item. Please check details and try again."
+      const finalOptions = formData.options.map(
+        ({ id, choices, ...restOpt }) => ({
+          ...restOpt,
+          choices: choices.map(({ id: choiceId, ...restChoice }) => restChoice),
+        })
       );
+
+      const saveData: Omit<MenuItem, "id"> | MenuItem = {
+        ...(isEditing && itemToEdit ? { id: itemToEdit.id } : {}),
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        price: String(priceValue),
+        categoryId: formData.categoryId,
+        tags: formData.tags.map((t) => t.trim()).filter((t) => t),
+        options: finalOptions,
+        isAvailable: formData.isAvailable,
+        loyaltyPoints: formData.loyaltyPoints || 0,
+        imageUrl: finalImageUrl,
+      };
+
+      if (!isEditing && "id" in saveData) {
+        delete (saveData as any).id;
+      }
+
+      console.log("Saving menu item data:", saveData);
+      const success = await onSave(saveData as MenuItem);
+
+      if (
+        success &&
+        photoFile &&
+        oldPhotoURL &&
+        oldPhotoURL.includes("firebasestorage.googleapis.com")
+      ) {
+        console.log("Deleting old photo:", oldPhotoURL);
+        try {
+          const oldPhotoRef = ref(storage, oldPhotoURL);
+          await deleteObject(oldPhotoRef);
+        } catch (deleteError: any) {
+          if (deleteError.code === "storage/object-not-found") {
+            console.warn(
+              "Old photo not found, it might have been already deleted."
+            );
+          } else {
+            console.error("Failed to delete old photo:", deleteError);
+          }
+        }
+      }
+
+      if (!success) {
+        setError(
+          error ||
+            "Failed to save menu item. Please check details and try again."
+        );
+      }
+    } catch (err: any) {
+      console.error("An error occurred during the save process:", err);
+      setError(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsSaving(false);
     }
-    // If successful, onSave should handle closing the modal or providing feedback
   };
 
+  const imageSrc = imagePreviewUrl || formData.imageUrl;
   if (!isOpen) return null;
 
   return (
@@ -486,7 +556,7 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
                 value={formData.categoryId}
                 onChange={handleChange}
                 required
-                className="appearance-none block w-full bg-neutral-800 border-neutral-700 text-neutral-100 placeholder-neutral-400 rounded-lg focus:ring-1 focus:ring-[#B41219] focus:border-[#B41219] px-3.5 py-2.5 text-sm transition-colors duration-150 shadow-sm pr-8 bg-no-repeat bg-right-2.5"
+                className="appearance-none pl-10 block w-full bg-neutral-800 border-neutral-700 text-neutral-100 placeholder-neutral-400 rounded-lg focus:ring-1 focus:ring-[#B41219] focus:border-[#B41219] px-3.5 py-2.5 text-sm transition-colors duration-150 shadow-sm pr-8 bg-no-repeat bg-right-2.5"
                 style={{
                   backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                 }}
@@ -547,16 +617,17 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
               Image
             </label>
             <div className="flex items-center gap-4 mt-1">
-              <Image
-                src={formData.imageUrl || placeholderImgSrc}
-                alt="Menu item preview"
-                width={64}
-                height={64}
-                className="object-cover rounded-lg border border-neutral-700 bg-neutral-800"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = placeholderImgSrc;
-                }}
-              />
+              {imageSrc ? (
+                <Image
+                  src={formData.imageUrl}
+                  alt="Menu item preview"
+                  width={64}
+                  height={64}
+                  className="object-cover rounded-lg border border-neutral-700 bg-neutral-800"
+                />
+              ) : (
+                <MenuItemMissingIcon />
+              )}
               <input
                 type="file"
                 accept="image/*"
@@ -649,7 +720,7 @@ const MenuItemFormModal: React.FC<MenuItemFormModalProps> = ({
                   className="absolute top-3 right-3 p-1 text-neutral-400 hover:text-[#B41219] rounded-full hover:bg-[#B41219]/10 transition-colors"
                   aria-label="Remove Option Group"
                 >
-                  <DeleteIcon className="w-5 h-5"/>
+                  <DeleteIcon className="w-5 h-5" />
                 </button>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                   <div>

@@ -10,14 +10,11 @@ import React, {
 } from "react";
 import Image from "next/image";
 
-import menu1 from "@/../public/Images/menu1.png";
-import menu2 from "@/../public/Images/menu2.png";
-import menu3 from "@/../public/Images/menu3.png";
-import menu4 from "@/../public/Images/menu1.png";
-
 import { CartItemOptions, MenuItem } from "@/constants/types";
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
+import { image } from "framer-motion/client";
+import MenuItemMissingIcon from "./ui/MenuItemMissingIcon";
 
 export interface ScrollableMenuRef {
   scrollNext: () => void;
@@ -48,7 +45,7 @@ const ScrollableMenuCards = forwardRef<
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const isAuthenticated = useSelector(
-      (state: RootState) => state.auth.isAuthenticated
+      (state) => (state as RootState).auth.isAuthenticated
     );
 
     const scrollNext = useCallback(() => {
@@ -120,8 +117,6 @@ const ScrollableMenuCards = forwardRef<
       };
     }, [menuItems, handleScroll, checkScrollPosition]);
 
-    const images = [menu1, menu2, menu3, menu4];
-
     return (
       <div className="w-full bg-primary-dark text-white px-2 sm:px-6 pt-3 pb-0">
         {/* Scrollable Cards Section */}
@@ -136,12 +131,18 @@ const ScrollableMenuCards = forwardRef<
             >
               {/* Card Image */}
               <div className="relative h-[240px] w-full">
-                <Image
-                  src={images[index]}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                />
+                {item.imageUrl ? (
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.name}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-primary-dark/40 flex items-center justify-center">
+                    <MenuItemMissingIcon />
+                  </div>
+                )}
               </div>
 
               {/* Card Content */}

@@ -16,49 +16,50 @@ import Featuring from "@/components/featuring";
 import Footer from "@/components/Footer";
 import { useSelector } from "react-redux";
 import { selectRestaurantInfo } from "@/lib/slices/restaurantSlice";
-
+import { getAuth } from "firebase/auth";
 
 export default function Home() {
-
   const menuSectionRef = useRef<HTMLDivElement>(null);
+
+  const restaurantInfo = useSelector(selectRestaurantInfo);
 
   const handleOrderNowClick = () => {
     menuSectionRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start', 
+      behavior: "smooth",
+      block: "start",
     });
   };
 
   return (
     <div className="p-[10px]">
-      <Header handleOrderNowClick={handleOrderNowClick}/>
+      <Header handleOrderNowClick={handleOrderNowClick} />
 
       <div className="h-[40px]" />
 
       {/* hero img section */}
-      <div id="Home" className="h-[550px] sm:h-[500px] w-full rounded-[36px] relative">
+      <div
+        id="Home"
+        className="h-[550px] sm:h-[500px] w-full rounded-[36px] relative"
+      >
         <div className="px-[20px] pb-8 sm:px-[40px] h-full flex flex-col items-start justify-end gap-2.5">
           <div className="text-white text-normal2 sm:text-normal2 border-l-3 border-white pl-[20px] font-awakening">
             Best Fast Food in West Drayton
           </div>
 
           <div className="text-white text-h2 mb-16 md:mb-0  sm:text-h1 md:text-[80px] sm:font-medium leading-[1.2] font-awakening">
-            West Drayton's  
+            West Drayton's
             <br />
             Ultimate Shack
             <br />
             Style Boxes!!
-            <br />
-            - You Chill, We Grill.
+            <br />- You Chill, We Grill.
           </div>
 
-          <ThemeButton 
-            onClick={handleOrderNowClick}
-          />
+          <ThemeButton onClick={handleOrderNowClick} />
 
           <Image
             src={hero1}
-            alt="Placeholder Image"
+            alt="Grill Shack Hero Image"
             className="absolute top-0 -right-[10px] w-fit h-full object-contain rounded-[36px] -z-10"
           />
         </div>
@@ -76,8 +77,7 @@ export default function Home() {
         </div>
         <div className="mt-[20px]">
           <ThemeButton
-            // TODO link to menu page
-            href="/"
+            href="/MenuPage"
             text="View Full Menu"
             textClassname="pr-[8px] pl-[14px]"
           />
@@ -88,7 +88,10 @@ export default function Home() {
 
       {/* Menu Section */}
 
-      <div ref={menuSectionRef} className="w-full flex items-center justify-center">
+      <div
+        ref={menuSectionRef}
+        className="w-full flex items-center justify-center"
+      >
         <Home_menu_section />
       </div>
 
@@ -109,22 +112,19 @@ export default function Home() {
 
       <Reviews />
 
-      <Featuring/>
+      <Featuring />
 
       <div className="h-[100px]" />
       {/* FAQ */}
       <FAQSection />
 
-
       <div className="h-[100px]" />
       {/* OUR LOCATION */}
       <LocationComponent />
-      
 
       <div className="h-[100px]" />
       {/* FOOTER */}
-      <Footer/>
-      
+      <Footer />
     </div>
   );
 }

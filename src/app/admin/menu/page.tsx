@@ -74,9 +74,6 @@ const AdminMenuPage: React.FC = () => {
 
   console.log(profile);
 
-  // --- Authorization ---
-  // const isAuthorized = profile?.role === 'admin' || profile?.role === 'staff';
-  // TODO correct it and change profile data object in firebase auth
   const isAuthorized = true;
   useEffect(() => {
     if (profile && !isAuthorized) {
@@ -84,7 +81,6 @@ const AdminMenuPage: React.FC = () => {
       router.replace("/");
     }
   }, [profile, isAuthorized]);
-  // --- End Authorization ---
 
   // --- Data Fetching ---
   const fetchData = useCallback(() => {
@@ -179,7 +175,6 @@ const AdminMenuPage: React.FC = () => {
       await apiClient.delete(
         `/admin/restaurants/${restaurantId}/menu/${itemId}`
       );
-      // TODO: Refetch or update Redux state locally
       dispatch(fetchAllMenuItemsFromApi()); // Simple refetch
       console.log(`Menu item ${itemId} deleted.`);
       return true;
@@ -225,83 +220,94 @@ const AdminMenuPage: React.FC = () => {
         Menu Management
       </h1>
 
+      {/* --- Category Management Section --- */}
+      <section className="mb-8 p-6 bg-black rounded-xl shadow-lg border border-gray-700">
+        <h2 className="text-xl font-semibold text-gray-100 mb-6">Categories</h2>
+        {/* Pass categories and functions to manage them */}
+        <CategoryManager
+          categories={categories || []}
+          restaurantId={restaurantId || ""}
+          onCategoriesUpdate={() => dispatch(fetchInitialRestaurantData())} // Refetch info on update
+          // Ensure CategoryManager is also styled for dark mode internally, potentially with a bg-white/5 or similar if it's a distinct "sub-component" block
+        />
+      </section>
 
-{/* --- Category Management Section --- */}
-<section className="mb-8 p-6 bg-black rounded-xl shadow-lg border border-gray-700">
-    <h2 className="text-xl font-semibold text-gray-100 mb-6">Categories</h2>
-    {/* Pass categories and functions to manage them */}
-    <CategoryManager
-        categories={categories || []}
-        restaurantId={restaurantId || ''}
-        onCategoriesUpdate={() => dispatch(fetchInitialRestaurantData())} // Refetch info on update
-        // Ensure CategoryManager is also styled for dark mode internally, potentially with a bg-white/5 or similar if it's a distinct "sub-component" block
-    />
-</section>
-
-{/* --- Menu Item Section --- */}
-<section className="mb-8 p-6 bg-black rounded-xl shadow-lg border border-gray-700">
-    <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-xl font-semibold text-gray-100">Menu Items</h2>
-        <button
+      {/* --- Menu Item Section --- */}
+      <section className="mb-8 p-6 bg-black rounded-xl shadow-lg border border-gray-700">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <h2 className="text-xl font-semibold text-gray-100">Menu Items</h2>
+          <button
             onClick={handleOpenModalForAdd}
             className="flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-[#B41219] hover:bg-[#9A080F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-[#B41219] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 w-full sm:w-auto"
-        >
+          >
             <PlusIcon /> Add New Item
-        </button>
-    </div>
+          </button>
+        </div>
 
-    {/* Search and Filter Controls - This div is the "sub-component" */}
-    <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 rounded-lg bg-white/5 border border-white/10">
-        <input
+        {/* Search and Filter Controls - This div is the "sub-component" */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 rounded-lg bg-white/5 border border-white/10">
+          <input
             type="text"
             placeholder="Search items by name, tag, description..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="block w-full flex-grow px-3.5 py-2.5 bg-white/10 border border-gray-600 text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-[#B41219] focus:border-[#B41219] sm:text-sm placeholder-gray-400 transition-all duration-150 ease-in-out hover:border-[#B41219]/50 disabled:bg-gray-500 disabled:cursor-not-allowed disabled:text-gray-400"
-        />
-        <select
+          />
+          <select
             value={selectedCategoryFilter}
             onChange={(e) => setSelectedCategoryFilter(e.target.value)}
             className="block md:w-auto w-full px-3.5 py-2.5 bg-white/10 border border-gray-600 text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-[#B41219] focus:border-[#B41219] sm:text-sm placeholder-gray-400 transition-all duration-150 ease-in-out hover:border-[#B41219]/50 disabled:bg-gray-500 disabled:cursor-not-allowed disabled:text-gray-400 appearance-none"
-        >
-            <option className='bg-white/15 text-black' value="all">All Categories</option>
-            {categories.map(cat => (
-                <option className='bg-white/15 text-black' key={cat.name} value={cat.name}>{cat.name}</option>
+          >
+            <option className="bg-white/15 text-black" value="all">
+              All Categories
+            </option>
+            {categories.map((cat) => (
+              <option
+                className="bg-white/15 text-black"
+                key={cat.name}
+                value={cat.name}
+              >
+                {cat.name}
+              </option>
             ))}
-        </select>
-    </div>
-
-    {/* Menu Item List */}
-    {menuLoading === "pending" && (
-        <div className="text-center p-4 text-white/20 flex items-center justify-center">
-            <Spinner /> <span className="ml-2">Loading menu items...</span>
+          </select>
         </div>
-    )}
-    {menuError && <div className="text-center p-4 text-red-400">Error loading menu: {menuError}</div>}
-    {menuLoading === "succeeded" && !menuError && (
-        <AdminMenuList
+
+        {/* Menu Item List */}
+        {menuLoading === "pending" && (
+          <div className="text-center p-4 text-white/20 flex items-center justify-center">
+            <Spinner /> <span className="ml-2">Loading menu items...</span>
+          </div>
+        )}
+        {menuError && (
+          <div className="text-center p-4 text-red-400">
+            Error loading menu: {menuError}
+          </div>
+        )}
+        {menuLoading === "succeeded" && !menuError && (
+          <AdminMenuList
             items={filteredMenuItems}
             onEdit={handleOpenModalForEdit}
             onDelete={handleDeleteMenuItem}
             // Ensure AdminMenuList is also styled for dark mode internally
-        />
-    )}
-</section>
+          />
+        )}
+      </section>
 
-{/* Add/Edit Modal */}
-<AnimatePresence>
-    {isModalOpen && (
-        <MenuItemFormModal
+      {/* Add/Edit Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <MenuItemFormModal
             isOpen={isModalOpen}
             onClose={handleCloseModal}
             onSave={handleSaveMenuItem}
             itemToEdit={editingItem}
             categories={categories || []}
-            restaurantId={restaurantId || ''}
+            restaurantId={restaurantId || ""}
             // Ensure MenuItemFormModal is also styled for dark mode internally, likely with a bg-gray-800 or bg-black base
-        />
-    )}
-</AnimatePresence>
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };

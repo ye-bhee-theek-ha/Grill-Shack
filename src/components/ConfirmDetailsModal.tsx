@@ -201,10 +201,10 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="absolute top-full right-0 mt-2 w-80 md:w-96 max-h-[70vh] flex flex-col bg-white rounded-lg shadow-xl z-50 border border-gray-200 overflow-hidden">
+    <div className="absolute top-full right-0 mt-2 w-80 md:w-96 flex flex-col bg-white rounded-lg shadow-xl z-50 border border-gray-200">
       <motion.div
         ref={modalRef}
-        className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+        className="bg-white rounded-lg shadow-xl w-full max-w-md "
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
@@ -319,7 +319,7 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
         </div>
 
         {/* Footer with Action Button */}
-        <div className="p-4 bg-gray-50 border-t">
+        <div className="p-4  border-t">
           <button
             onClick={handleProceedToPayment}
             disabled={isProcessing || !!error}

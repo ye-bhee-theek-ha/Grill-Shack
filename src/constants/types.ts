@@ -1,6 +1,5 @@
 import { Timestamp } from "firebase/firestore";
 
-
 // USER
 export interface Address {
   id: string;
@@ -8,50 +7,50 @@ export interface Address {
   isDefault: boolean;
 }
 
-
 export interface User {
   uid: string;
   email?: string | null;
   displayName?: string | null;
-  role?: 'customer' | 'staff' | 'admin';
+  role: "customer" | "staff" | "admin";
   phoneNumber?: string | null;
   loyaltyPoints?: number;
   photoURL?: string | null;
-  phoneVerified?: boolean; 
+  phoneVerified?: boolean;
   addresses: Address[];
+  likedItems?: string[];
 }
 
 export interface AuthState {
   isAuthenticated: boolean;
-  user: User | null; 
-  loading: 'idle' | 'pending' | 'succeeded' | 'failed'; 
-  error: string | null; 
+  user: User | null;
+  loading: "idle" | "pending" | "succeeded" | "failed";
+  error: string | null;
 
   phoneVerificationId: string | null;
-  phoneVerificationLoading: 'idle' | 'pending' | 'succeeded' | 'failed';
+  phoneVerificationLoading: "idle" | "pending" | "succeeded" | "failed";
   phoneVerificationError: string | null;
 
-  registrationLoading: 'idle' | 'pending' | 'succeeded' | 'failed';
+  registrationLoading: "idle" | "pending" | "succeeded" | "failed";
   registrationError: string | null;
 
-    loginLoading: 'idle' | 'pending' | 'succeeded' | 'failed';
-    loginError: string | null;
+  loginLoading: "idle" | "pending" | "succeeded" | "failed";
+  loginError: string | null;
 
-    logoutLoading: 'idle' | 'pending' | 'succeeded' | 'failed';
-    logoutError: string | null;
+  logoutLoading: "idle" | "pending" | "succeeded" | "failed";
+  logoutError: string | null;
 }
 
 export interface UserState {
   profile: User | null;
   addresses: Address[];
-  loading: 'idle' | 'pending' | 'succeeded' | 'failed';
+  loading: "idle" | "pending" | "succeeded" | "failed";
   error: string | null; // Store only the error message string
 }
 
 export interface category {
   ids: string[];
   name: string;
-};
+}
 
 export interface FAQItem {
   id: string;
@@ -69,18 +68,18 @@ export interface RestaurantInfo {
   coverImageUrl?: string;
 
   siteContent: {
-    heroText?: string,
-    heroSubtext?: string,
-    menuText?: string,
-    menuSubtext?: string,
+    heroText?: string;
+    heroSubtext?: string;
+    menuText?: string;
+    menuSubtext?: string;
 
     featuring?: {
       title?: string;
       description?: string;
       imageUrl?: string;
-    }[]
-  }
-  
+    }[];
+  };
+
   info: {
     name?: string;
     description?: string;
@@ -91,7 +90,7 @@ export interface RestaurantInfo {
       email: string;
       phone: string;
     };
-    
+
     openingHours: {
       day: string;
       timing: string;
@@ -104,7 +103,6 @@ export interface RestaurantInfo {
   };
 }
 
-
 // Menu Item Types
 export interface MenuItem {
   id: string;
@@ -112,7 +110,7 @@ export interface MenuItem {
   name: string;
   imageUrl?: string;
   description?: string;
-  price?: string;
+  price: string;
   loyaltyPoints?: number;
   options: {
     IsExtra: boolean;
@@ -124,11 +122,11 @@ export interface MenuItem {
       name: string;
       price: number;
     }[];
-  }[]
+  }[];
 
   tags: string[];
   isAvailable?: boolean;
-  
+
   //app specific
   isFavorite?: boolean;
 }
@@ -136,63 +134,68 @@ export interface MenuItem {
 // order object types
 
 export type OrderStatus =
-  | 'pending' // Order received, awaiting confirmation
-  | 'confirmed' // Restaurant accepted the order
-  | 'preparing' // Order is being prepared
-  | 'ready_for_pickup' // Order is ready for pickup
-  | 'out_for_delivery' // Order is out for delivery
-  | 'delivered' // Order completed (delivered)
-  | 'completed_pickup' // Order completed (picked up) - Optional distinct status
-  | 'cancelled_by_user' // Order cancelled by the user
-  | 'rejected_by_restaurant'; // Order rejected by the restaurant
-  
+  | "pending" // Order received, awaiting confirmation
+  | "confirmed" // Restaurant accepted the order
+  | "preparing" // Order is being prepared
+  | "ready_for_pickup" // Order is ready for pickup
+  | "out_for_delivery" // Order is out for delivery
+  | "delivered" // Order completed (delivered)
+  | "completed_pickup" // Order completed (picked up) - Optional distinct status
+  | "cancelled_by_user" // Order cancelled by the user
+  | "rejected_by_restaurant"; // Order rejected by the restaurant
+
 export interface Order {
-  id: string;
-  orderNumber: string | null;
+  id: string; // Firestore document ID
+  squareOrderId: string;
   userId: string;
   restaurantId: string;
-
-  customerInfo: {
-    name: string;
-    email: string;
-    phoneNumber?: string;
-  };
+  name: string;
+  email?: string;
+  phone?: string;
 
   items: OrderItem[];
-  subTotal: number;
-
-  discountAmount: number;
-
-  totalAmount: number;
-
-  status: OrderStatus;
-
-  orderType: 'pickup' | 'delivery';
 
   deliveryAddress: Address | null;
+  status: OrderStatus;
 
-  payment: {
-    method: string;
-    status: 'pending' | 'paid' | 'failed' | 'refunded';
-    transactionId?: string;
+  totalAmount: number;
+  currency: string;
+
+  paymentDetails: {
+    id?: string;
+    status?: string;
+    cardBrand?: string;
+    last4?: string;
+    sourceType?: string;
   };
+
+  // customerInfo?: {
+  //   name: string;
+  //   email: string;
+  //   phoneNumber?: string;
+  // };
+
+  // subTotal: number;
+
+  // discountAmount: number;
+
+  // orderType: "pickup" | "delivery";
 
   specialInstructions?: string;
 
   createdAt: Timestamp | Date | string;
   updatedAt: Timestamp | Date | string;
 
+  // app specific
   estimatedCompletionTime?: Timestamp | Date | string | null;
   handledByStaffId?: string;
 }
-
 
 export interface OrderItem {
   menuItemId: string;
   name: string;
   quantity: number;
-  unitPrice: number;
-  totalPrice: number;
+  price: string;
   /**
    * Denormalized record of selected options (e.g., size, toppings) for this item at the time of order.
    */
@@ -206,7 +209,7 @@ export interface CartItemOptions {
 }
 
 export interface CartItem extends MenuItem {
-  cartItemId: string; 
+  cartItemId: string;
   quantity: number;
   selectedOptions: CartItemOptions;
 }
@@ -215,4 +218,3 @@ export interface CartState {
   items: CartItem[];
   isOpen: boolean;
 }
-

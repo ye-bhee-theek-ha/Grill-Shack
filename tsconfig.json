@@ -22,6 +22,13 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/books/[id]", "src/utils/withAuth.js"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "src/app/books/[id]",
+    "src/utils/withAuth.js"
+  ],
   "exclude": ["node_modules"]
 }

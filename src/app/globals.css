@@ -2,7 +2,8 @@
 
 @font-face {
   font-family: "CretoDispay";
-  src: url("@/../../../public/Fonts/CreatoDisplay-Regular.otf") format("opentype");
+  src: url("@/../../../public/Fonts/CreatoDisplay-Regular.otf")
+    format("opentype");
   font-weight: normal;
   font-style: normal;
 }
@@ -15,10 +16,10 @@
 }
 
 @theme {
-  --color-primary-dark: #9A080F;
-  --color-primary: #B41219;
+  --color-primary-dark: #9a080f;
+  --color-primary: #b41219;
   --color-black: #111111;
-  --color-grey: #C4C4C4;
+  --color-grey: #c4c4c4;
 
   --color-color-text-primary: #fff;
 
@@ -32,6 +33,7 @@
   --text-normal2: 18px;
   --text-normal3: 16px;
   --text-normal4: 14px;
+  --text-normal5: 12px;
 
   --leading-lh24: 24px;
 
@@ -39,11 +41,11 @@
   --font-bold: 700;
   --font-extra-bold: 800;
 
-  --font-*:initial;
-  --default-font-family:"CretoDispay";
+  --font-*: initial;
+  --default-font-family: "CretoDispay";
 
-  --font-creto:"CretoDispay";
-  --font-awakening:"AWAKENNING";
+  --font-creto: "CretoDispay";
+  --font-awakening: "AWAKENNING";
   --leading-normal: 1.2;
 }
 
