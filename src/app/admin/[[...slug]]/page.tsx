@@ -117,13 +117,15 @@ const AdminHomePage: React.FC = () => {
   );
 };
 
+type Params = Promise<{ slug: string }>;
+
 // --- Main Page Export ---
-export default function AdminCatchAllPage({
+export default async function AdminCatchAllPage({
   params,
 }: {
-  params: { slug?: string[] };
+  params: Params;
 }) {
-  const slug = params.slug;
+  const { slug } = await params;
 
   // If there is no slug, it's the base /admin route, so we show the homepage.
   if (!slug || slug.length === 0) {

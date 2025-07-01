@@ -11,15 +11,19 @@ import PromotionalBanner from "@/components/Home_promotional_banner";
 import Reviews from "@/components/Reviews";
 import FAQSection from "@/components/FAQ_section";
 import LocationComponent from "@/components/OurLocation";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import Featuring from "@/components/featuring";
 import Footer from "@/components/Footer";
 import { useSelector } from "react-redux";
 import { selectRestaurantInfo } from "@/lib/slices/restaurantSlice";
 import { getAuth } from "firebase/auth";
+import { usePathname } from "next/navigation";
+import { useMobile } from "@/hooks/use-mobile";
 
 export default function Home() {
   const menuSectionRef = useRef<HTMLDivElement>(null);
+
+  const pathname = usePathname();
 
   const restaurantInfo = useSelector(selectRestaurantInfo);
 
@@ -30,10 +34,26 @@ export default function Home() {
     });
   };
 
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      const sectionId = hash.replace("#", "");
+      const section = document.getElementById(sectionId);
+      if (section) {
+        setTimeout(() => {
+          section.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 100);
+      }
+    }
+  }, [pathname]);
+
+  const { fourHundredPx } = useMobile();
+
   return (
     <div className="p-[10px]">
-      <Header handleOrderNowClick={handleOrderNowClick} />
-
       <div className="h-[40px]" />
 
       {/* hero img section */}
@@ -42,11 +62,13 @@ export default function Home() {
         className="h-[550px] sm:h-[500px] w-full rounded-[36px] relative"
       >
         <div className="px-[20px] pb-8 sm:px-[40px] h-full flex flex-col items-start justify-end gap-2.5">
-          <div className="text-white text-normal2 sm:text-normal2 border-l-3 border-white pl-[20px] font-awakening">
+          <div
+            className={`text-white ${fourHundredPx ? "text-normal2" : "text-normal3"} sm:text-normal2 border-l-3 border-white pl-[20px] font-awakening`}
+          >
             Best Fast Food in West Drayton
           </div>
 
-          <div className="text-white text-h2 mb-16 md:mb-0  sm:text-h1 md:text-[80px] sm:font-medium leading-[1.2] font-awakening">
+          <div className="text-white text-h3 mb-16 md:mb-0  sm:text-h1 md:text-[80px] sm:font-medium leading-[1.2] font-awakening">
             West Drayton's
             <br />
             Ultimate Shack
@@ -121,10 +143,6 @@ export default function Home() {
       <div className="h-[100px]" />
       {/* OUR LOCATION */}
       <LocationComponent />
-
-      <div className="h-[100px]" />
-      {/* FOOTER */}
-      <Footer />
     </div>
   );
 }

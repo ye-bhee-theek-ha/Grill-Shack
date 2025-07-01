@@ -1,6 +1,6 @@
 // app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebase/firebaseAdmin"; // Adjust path as needed
+import { adminAuth, adminDb } from "@/lib/firebase/firebaseAdmin";
 import { cookies } from "next/headers";
 
 // Session expiration for auto-login after registration

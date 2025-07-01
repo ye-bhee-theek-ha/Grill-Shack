@@ -1,53 +1,43 @@
 "use client";
 
-import React from 'react'; 
-import Image, { StaticImageData } from 'next/image'; 
-import { motion } from 'framer-motion'; 
+import React from "react";
+import Image, { StaticImageData } from "next/image";
+import { motion, Variants } from "framer-motion";
 
 import featuring1 from "@/../public/Images/featuring1.png";
 import featuring2 from "@/../public/Images/featuring2.png";
 import featuring3 from "@/../public/Images/featuring3.png";
 import featuring4 from "@/../public/Images/featuring4.png";
 
-import { useSelector } from 'react-redux';
-import { selectRestaurantInfo } from '@/lib/slices/restaurantSlice';
+import { useSelector } from "react-redux";
+import { selectRestaurantInfo } from "@/lib/slices/restaurantSlice";
 
-
-
-const sectionVariants = {
-  hidden: { opacity: 0, y: 50 }, 
+const sectionVariants: Variants = {
+  hidden: { opacity: 0, y: 50 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.6, 
-      ease: "easeOut" 
-    }
-  }
+      duration: 0.6,
+      ease: "easeOut",
+    },
+  },
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
 
 function Featuring() {
-
-    const restaurantInfo = useSelector(selectRestaurantInfo);
-    const featuringItems = restaurantInfo?.siteContent.featuring || [];
-    
+  const restaurantInfo = useSelector(selectRestaurantInfo);
+  const featuringItems = restaurantInfo?.siteContent.featuring || [];
 
   if (featuringItems.length === 0) {
     return null;
   }
 
-  const images = [
-    featuring1,
-    featuring2,
-    featuring3,
-    featuring4
-  ]
-
+  const images = [featuring1, featuring2, featuring3, featuring4];
 
   return (
     <div id="Featuring" className="w-full mt-12">

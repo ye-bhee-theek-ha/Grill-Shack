@@ -8,6 +8,8 @@ import {
 } from "./CTA_header_btn";
 import useAuth from "../hooks/useAuth";
 import AuthModal from "./Auth/AuthForm";
+import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 interface HeaderProps {
   handleOrderNowClick: () => void;
@@ -21,6 +23,9 @@ function Header({ handleOrderNowClick }: HeaderProps) {
     "login"
   );
 
+  const router = useRouter();
+  const pathname = usePathname();
+
   const handleSignInClick = () => {
     setAuthModalMode("login");
     setIsAuthModalOpen(true);
@@ -31,6 +36,19 @@ function Header({ handleOrderNowClick }: HeaderProps) {
     setIsAuthModalOpen(true);
   };
 
+  const scrollToSection = (sectionId: string) => {
+    if (pathname === "/") {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        console.warn(`Scroll target not found on home page: #${sectionId}`);
+      }
+    } else {
+      router.push(`/#${sectionId}`);
+    }
+  };
+
   return (
     <div className="p-[20px] w-full">
       <div className="w-full grid grid-cols-2 md:grid-cols-3 items-center">
@@ -38,10 +56,54 @@ function Header({ handleOrderNowClick }: HeaderProps) {
         <div className="flex justify-start">
           <AnimatedMenuButton
             menuItems={[
-              { name: "Home", href: "/" },
-              { name: "About", href: "/about" },
-              { name: "Services", href: "/services" },
-              { name: "Contact", href: "/contact" },
+              {
+                name: "Blogs",
+                onclick: () => {
+                  router.push("/blogs");
+                },
+              },
+              {
+                name: "Home",
+                onclick: () => {
+                  scrollToSection("Home");
+                },
+              },
+              {
+                name: "Menu",
+                onclick: () => {
+                  scrollToSection("Menu");
+                },
+              },
+              {
+                name: "Reviews",
+                onclick: () => {
+                  scrollToSection("Reviews");
+                },
+              },
+              // {
+              //   name: "Our Story",
+              //   onclick: () => {
+              //     scrollToSection("Story");
+              //   },
+              // },
+              {
+                name: "Featuring",
+                onclick: () => {
+                  scrollToSection("Featuring");
+                },
+              },
+              {
+                name: "FAQ's",
+                onclick: () => {
+                  scrollToSection("FAQ's");
+                },
+              },
+              {
+                name: "Location",
+                onclick: () => {
+                  scrollToSection("Location");
+                },
+              },
             ]}
           />
         </div>
